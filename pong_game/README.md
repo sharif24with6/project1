@@ -1,2 +1,2 @@
-#pong game 
+#pong game is
 still in devlopment.
