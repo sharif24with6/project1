@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter import ttk, messagebox
 import random
 import string
+import json
 
 # Function to generate password
 def generate_password():
@@ -17,13 +18,18 @@ def generate_password():
 # Function to save password
 def save_password():
     """
-    Save the entered website, email/username, and password to a file.
+    Save the entered website, email/username, and password to a JSON file.
     If any field is empty, show a warning message.
     Otherwise, confirm with the user before saving the data.
     """
     website = website_entry.get()
     email = email_entry.get()
     password = password_entry.get()
+    new_data = {
+        "website": website,
+        "email": email,
+        "password": password
+    }
 
     if not website or not email or not password:
         # Show a warning if any field is empty
@@ -31,16 +37,21 @@ def save_password():
     else:
         # Read the existing data
         try:
-            with open("data.txt", "r") as data_file:
-                lines = data_file.readlines()
+            with open("data.json", "r") as data_file:
+                # Load the existing data into a list
+                data = json.load(data_file)
         except FileNotFoundError:
-            lines = []
+            # If the file does not exist, start with an empty list
+            data = []
 
-        # Check for existing website or email
-        for line in lines:
-            existing_website, existing_email, _ = line.strip().split(" | ")
-            if website == existing_website or email == existing_email:
-                messagebox.showwarning(title="Duplicate Entry", message="The website or email already exists.")
+        # Ensure that data is a list of dictionaries
+        if not isinstance(data, list):
+            data = []
+
+        # Check for existing email under the same website
+        for entry in data:
+            if isinstance(entry, dict) and entry.get("website") == website and entry.get("email") == email:
+                messagebox.showwarning(title="Duplicate Entry", message="The same email already exists for this website.")
                 return
 
         # Ask for user confirmation before saving
@@ -48,12 +59,20 @@ def save_password():
                                        message=f"These are the details entered: \nEmail: {email} "
                                                f"\nPassword: {password} \nIs it ok to save?")
         if is_ok:
-            # Save the data to a file and clear the input fields
-            with open("data.txt", "a") as data_file:
-                data_file.write(f"{website} | {email} | {password}\n")
-                website_entry.delete(0, END)
-                password_entry.delete(0, END)
+            # Append the new data to the list
+            data.append(new_data)
 
+            # Save the updated data back to the file
+            try:
+                with open("data.json", "w") as data_file:
+                    json.dump(data, data_file, indent=4)
+            except IOError:
+                messagebox.showerror(title="Error", message="An error occurred while saving the data.")
+                return
+
+            # Clear the input fields
+            website_entry.delete(0, END)
+            password_entry.delete(0, END)
 
 # Create the main window
 window = Tk()
